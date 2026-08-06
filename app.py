@@ -8,33 +8,22 @@ st.write("실측 실험 데이터(효모 콜로니 수 & DNA Band B값)를 바�
 
 st.sidebar.header("⚙️ 실험 조건 설정")
 
-# ⭐ 사용자가 마지막으로 움직인 슬라이더 수치를 완벽히 기억하는 메모리 세팅
-if 'time_slider' not in st.session_state:
-    st.session_state.time_slider = 15
-
 # 2. 사용자 입력 (조건 선택)
 condition = st.sidebar.selectbox(
     "처리 조건 선택",
     ["치료군 (15분 손상 후 비타민C 사후처리)", "예방군 (15분 비타민C 선처리)", "동시처리군", "염산치료군 (강산 손상)", "산화처리군 (산화만)", "대조군 (무처리)"]
 )
 
-# 3. 조건별 슬라이더 제목 자동 변경
-if "예방군" in condition:
-    slider_label = "비타민 C 선처리 후 산화제 투여까지 시간 (분)"
-elif "치료군" in condition or "염산" in condition:
-    slider_label = "산화제(또는 염산) 노출 후 비타민 C 투여까지 시간 (분)"
-else:
-    slider_label = "반응 유지 시간 (분)"
-
-# 4. 어떤 카테고리로 바꿔도 사용자가 마지막으로 설정한 시간이 100% 유지되는 슬라이더
+# 3. 슬라이더 제목을 고정하여 카테고리 전환 시 값 리셋 현상 완벽 방지
 exposure_time = st.sidebar.slider(
-    slider_label, 
+    "처리 및 반응 유지 시간 (분)", 
     min_value=0, 
     max_value=60, 
-    key="time_slider" # key 자체가 session_state와 연동되어 마지막 설정값을 절대 놓치지 않습니다.
+    value=15,
+    key="fixed_time_slider"
 )
 
-# 5. 실측 데이터 기준(대조군 250개 = 100%) 및 반응 모델 연산
+# 4. 실측 데이터 기준(대조군 250개 = 100%) 및 반응 모델 연산
 if condition == "대조군 (무처리)":
     colony_count = 250
     b_value = 159.0
@@ -83,7 +72,7 @@ else: # 산화처리군
 survival_rate_pct = (colony_count / 250.0) * 100.0
 dna_relative_pct = (b_value / 159.0) * 100.0
 
-# 6. 결과 출력
+# 5. 결과 출력
 st.subheader("📊 실제 데이터 기반 분석 결과")
 col1, col2, col3 = st.columns(3)
 col1.metric("예상 콜로니 개수", f"{colony_count} 개")
@@ -92,7 +81,7 @@ col3.metric("상대 DNA B값 비율", f"{dna_relative_pct:.1f} %")
 
 st.info(f"**판정 결과:** {status}")
 
-# 7. 실측치 기반 그래프 시각화
+# 6. 실측치 기반 그래프 시각화
 st.subheader("📈 그룹별 콜로니 수 비교 (실측치 연동)")
 
 prev_cnt = colony_count if "예방군" in condition else 210
