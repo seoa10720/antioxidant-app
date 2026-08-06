@@ -3,19 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # 1. 앱 제목 및 설명
-st.title("🧪 산화 스트레스 처리시점에 따른 항산화 효력 변화 예측기")
-st.write("자주탐 실험 데이터(효모 콜로니 수 & DNA Band B값)를 기반으로 조건처리 시점별 세포 생존율을 예측합니다.")
+st.title("🧪 세포/DNA 산화 스트레스 및 항산화 골든타임 예측기")
+st.write("실측 실험 데이터(효모 콜로니 수 & DNA Band B값)를 바탕으로 비타민 C 처리 시점별 세포 생존율을 예측합니다.")
 
 st.sidebar.header("⚙️ 실험 조건 설정")
 
-# ⭐ 핵심: 사용자가 조정한 시간(슬라이더 값)을 컴퓨터에 기억시키는 메모리(Session State) 설정
+# 사용자가 조정한 시간(슬라이더 값)을 메모리에 기억
 if 'saved_time' not in st.session_state:
     st.session_state.saved_time = 15
 
 # 2. 사용자 입력 (조건 선택)
 condition = st.sidebar.selectbox(
     "처리 조건 선택",
-    ["치료군 (15분 손상 후 비타민C 사후처리)", "예방군 (15분 비타민C 선처리)", "동시처리군", "염산치료군 (더 강한 손상)", "산화처리군 (산화만)", "대조군 (무처리)"]
+    ["치료군 (15분 손상 후 비타민C 사후처리)", "예방군 (15분 비타민C 선처리)", "동시처리군", "염산치료군 (강산 손상)", "산화처리군 (산화만)", "대조군 (무처리)"]
 )
 
 # 3. 조건별 슬라이더 제목 자동 변경
@@ -26,7 +26,7 @@ elif "치료군" in condition or "염산" in condition:
 else:
     slider_label = "반응 유지 시간 (분)"
 
-# 4. 메모리(saved_time)와 연결된 슬라이더 생성 (카테고리를 바꿔도 숫자가 리셋되지 않음)
+# 4. 메모리와 연결된 슬라이더
 exposure_time = st.sidebar.slider(
     slider_label, 
     min_value=0, 
@@ -35,7 +35,6 @@ exposure_time = st.sidebar.slider(
     key="time_slider"
 )
 
-# 슬라이더가 움직일 때마다 현재 수치를 메모리에 실시간 업데이트
 st.session_state.saved_time = exposure_time
 
 # 5. 실측 데이터 기준(대조군 250개 = 100%) 및 반응 모델 연산
@@ -60,7 +59,7 @@ elif "동시처리군" in condition:
     b_value = 162.0
     status = "🟡 양호 (산화와 항산화 반응 동시 진행)"
 
-elif "치료군 (15분" in condition:
+elif "치료군 (15분" in condition: # 과산화수소 치료군만 해당
     base_pct = 30.0 - ((exposure_time - 15) * 1.0) if exposure_time >= 15 else 30.0 + ((15 - exposure_time) * 1.5)
     survival_pct = max(0.0, base_pct)
     colony_count = int(250 * (survival_pct / 100.0))
@@ -73,7 +72,7 @@ elif "치료군 (15분" in condition:
     else:
         status = "🔴 골든타임 초과 (비가역적 세포 손상 진행)"
 
-elif "염산" in condition:
+elif "염산" in condition: # 염산치료군
     colony_count = 0
     b_value = 169.3
     status = "🔴 위험 (강산으로 인한 세포 완숙 파괴)"
@@ -96,15 +95,16 @@ col3.metric("상대 DNA B값 비율", f"{dna_relative_pct:.1f} %")
 
 st.info(f"**판정 결과:** {status}")
 
-# 7. 실측치 기반 그래프 시각화
+# 7. 실측치 기반 그래프 시각화 (⭐ 오류 수정: 각 군의 개수를 정확히 분리)
 st.subheader("📈 그룹별 콜로니 수 비교 (실측치 연동)")
 
 prev_cnt = colony_count if "예방군" in condition else 210
-treat_cnt = colony_count if "치료군" in condition else 75
+treat_cnt = colony_count if "치료군 (15분" in condition else 75 # 염산치료군과 완전 분리!
+acid_cnt = colony_count if "염산" in condition else 0
 
 data = {
     'Group': ['Control', 'Prevent', 'Simultaneous', 'Treat', 'Oxidized', 'Acid-Treat'],
-    'Colony Count': [250, prev_cnt, 145, treat_cnt, 0, 0]
+    'Colony Count': [250, prev_cnt, 145, treat_cnt, 0, acid_cnt]
 }
 df = pd.DataFrame(data)
 
