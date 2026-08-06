@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # 1. 앱 제목 및 설명
-st.title("🧪 세포/DNA 산화 스트레스 및 항산화 골든타임 예측기")
-st.write("실측 실험 데이터(효모 콜로니 수 & DNA Band B값)를 바탕으로 비타민 C 처리 시점별 세포 생존율을 예측합니다.")
+st.title("10720 장서아-산화 스트레스 처리 시점에 따른 항산화 효력 예측기")
+st.write("자주탐 데이터(효모 콜로니 수 & DNA Band B값)를 기반으로 세포 생존율을 예측합니다.")
 
 st.sidebar.header("⚙️ 실험 조건 설정")
 
