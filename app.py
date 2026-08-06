@@ -8,9 +8,9 @@ st.write("실측 실험 데이터(효모 콜로니 수 & DNA Band B값)를 바�
 
 st.sidebar.header("⚙️ 실험 조건 설정")
 
-# 사용자가 조정한 시간(슬라이더 값)을 메모리에 기억
-if 'saved_time' not in st.session_state:
-    st.session_state.saved_time = 15
+# ⭐ 사용자가 마지막으로 움직인 슬라이더 수치를 완벽히 기억하는 메모리 세팅
+if 'time_slider' not in st.session_state:
+    st.session_state.time_slider = 15
 
 # 2. 사용자 입력 (조건 선택)
 condition = st.sidebar.selectbox(
@@ -26,16 +26,13 @@ elif "치료군" in condition or "염산" in condition:
 else:
     slider_label = "반응 유지 시간 (분)"
 
-# 4. 메모리와 연결된 슬라이더
+# 4. 어떤 카테고리로 바꿔도 사용자가 마지막으로 설정한 시간이 100% 유지되는 슬라이더
 exposure_time = st.sidebar.slider(
     slider_label, 
     min_value=0, 
     max_value=60, 
-    value=st.session_state.saved_time,
-    key="time_slider"
+    key="time_slider" # key 자체가 session_state와 연동되어 마지막 설정값을 절대 놓치지 않습니다.
 )
-
-st.session_state.saved_time = exposure_time
 
 # 5. 실측 데이터 기준(대조군 250개 = 100%) 및 반응 모델 연산
 if condition == "대조군 (무처리)":
@@ -59,7 +56,7 @@ elif "동시처리군" in condition:
     b_value = 162.0
     status = "🟡 양호 (산화와 항산화 반응 동시 진행)"
 
-elif "치료군 (15분" in condition: # 과산화수소 치료군만 해당
+elif "치료군 (15분" in condition:
     base_pct = 30.0 - ((exposure_time - 15) * 1.0) if exposure_time >= 15 else 30.0 + ((15 - exposure_time) * 1.5)
     survival_pct = max(0.0, base_pct)
     colony_count = int(250 * (survival_pct / 100.0))
@@ -72,7 +69,7 @@ elif "치료군 (15분" in condition: # 과산화수소 치료군만 해당
     else:
         status = "🔴 골든타임 초과 (비가역적 세포 손상 진행)"
 
-elif "염산" in condition: # 염산치료군
+elif "염산" in condition:
     colony_count = 0
     b_value = 169.3
     status = "🔴 위험 (강산으로 인한 세포 완숙 파괴)"
@@ -95,11 +92,11 @@ col3.metric("상대 DNA B값 비율", f"{dna_relative_pct:.1f} %")
 
 st.info(f"**판정 결과:** {status}")
 
-# 7. 실측치 기반 그래프 시각화 (⭐ 오류 수정: 각 군의 개수를 정확히 분리)
+# 7. 실측치 기반 그래프 시각화
 st.subheader("📈 그룹별 콜로니 수 비교 (실측치 연동)")
 
 prev_cnt = colony_count if "예방군" in condition else 210
-treat_cnt = colony_count if "치료군 (15분" in condition else 75 # 염산치료군과 완전 분리!
+treat_cnt = colony_count if "치료군 (15분" in condition else 75
 acid_cnt = colony_count if "염산" in condition else 0
 
 data = {
