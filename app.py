@@ -51,17 +51,20 @@ col2.metric("DNA Band 선명도 (상대값)", f"{dna_clarity:.1f} %")
 
 st.info(f"**판정 결과:** {status}")
 
-# 5. 그래프 시각화
+# 5. 그래프 시각화 (글꼴 에러 방지를 위해 X축을 영문 약어로 변경)
 st.subheader("📈 그룹별 비교 그래프")
+
+# 영문 이름 매핑
+# Control: 대조군 / Prevent: 예방군 / Simultaneous: 동시처리 / Treat: 치료군 / Oxidized: 산화만 / Acid-Treat: 염산치료
 data = {
-    '그룹': ['대조군', '예방군', '동시처리', '치료군', '산화만', '염산치료'],
-    '생존율(%)': [100, 88, 63, survival_rate if condition == '치료군 (20분 후 투여)' else 40, 15, 3]
+    'Group': ['Control', 'Prevent', 'Simultaneous', 'Treat', 'Oxidized', 'Acid-Treat'],
+    'Survival Rate (%)': [100, 88, 63, survival_rate if condition == '치료군 (20분 후 투여)' else 40, 15, 3]
 }
 df = pd.DataFrame(data)
 
 fig, ax = plt.subplots(figsize=(8, 4))
 colors = ['gray', 'blue', 'green', 'orange', 'red', 'purple']
-ax.bar(df['그룹'], df['생존율(%)'], color=colors)
+ax.bar(df['Group'], df['Survival Rate (%)'], color=colors)
 ax.set_ylabel("Cell Survival Rate (%)")
 st.pyplot(fig)
 
