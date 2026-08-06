@@ -8,6 +8,10 @@ st.write("실측 실험 데이터(효모 콜로니 수 & DNA Band B값)를 바�
 
 st.sidebar.header("⚙️ 실험 조건 설정")
 
+# ⭐ 핵심: 사용자가 조정한 시간(슬라이더 값)을 컴퓨터에 기억시키는 메모리(Session State) 설정
+if 'saved_time' not in st.session_state:
+    st.session_state.saved_time = 15
+
 # 2. 사용자 입력 (조건 선택)
 condition = st.sidebar.selectbox(
     "처리 조건 선택",
@@ -22,18 +26,25 @@ elif "치료군" in condition or "염산" in condition:
 else:
     slider_label = "반응 유지 시간 (분)"
 
-# 기본 기준시간 15분 설정
-exposure_time = st.sidebar.slider(slider_label, 0, 60, 15)
+# 4. 메모리(saved_time)와 연결된 슬라이더 생성 (카테고리를 바꿔도 숫자가 리셋되지 않음)
+exposure_time = st.sidebar.slider(
+    slider_label, 
+    min_value=0, 
+    max_value=60, 
+    value=st.session_state.saved_time,
+    key="time_slider"
+)
 
-# 4. 실측 데이터 기준(대조군 250개 = 100%) 및 15분 경과 반응 모델 연산
+# 슬라이더가 움직일 때마다 현재 수치를 메모리에 실시간 업데이트
+st.session_state.saved_time = exposure_time
+
+# 5. 실측 데이터 기준(대조군 250개 = 100%) 및 반응 모델 연산
 if condition == "대조군 (무처리)":
     colony_count = 250
     b_value = 159.0
     status = "🟢 정상 (손상 없음)"
 
 elif "예방군" in condition:
-    # 실측치: 210개 (84.0%) / B값 161.0
-    # 선처리 시간이 적절(15분 부근)할 때 최고 생존율 유지
     if exposure_time <= 15:
         survival_pct = 75.0 + (exposure_time * 0.6)
     else:
@@ -44,15 +55,12 @@ elif "예방군" in condition:
     status = "🔵 최상 (사전 예방으로 세포 및 DNA 완벽 보호)"
 
 elif "동시처리군" in condition:
-    # 실측치: 145개 (58.0%) / B값 162.0
     survival_pct = max(30.0, 58.0 - ((exposure_time - 15) * 0.3))
     colony_count = int(250 * (survival_pct / 100.0))
     b_value = 162.0
     status = "🟡 양호 (산화와 항산화 반응 동시 진행)"
 
 elif "치료군 (15분" in condition:
-    # 실측치: 15분 처리 시 75개 (30.0%) / B값 155.7
-    # 15분 이후 사후 처리가 지연될수록 급격히 생존율 감소 (1분당 1%p 감소)
     base_pct = 30.0 - ((exposure_time - 15) * 1.0) if exposure_time >= 15 else 30.0 + ((15 - exposure_time) * 1.5)
     survival_pct = max(0.0, base_pct)
     colony_count = int(250 * (survival_pct / 100.0))
@@ -66,13 +74,11 @@ elif "치료군 (15분" in condition:
         status = "🔴 골든타임 초과 (비가역적 세포 손상 진행)"
 
 elif "염산" in condition:
-    # 실측치: 0개 (0%) / B값 169.3
     colony_count = 0
     b_value = 169.3
     status = "🔴 위험 (강산으로 인한 세포 완숙 파괴)"
 
 else: # 산화처리군
-    # 실측치: 0개 (0%) / B값 156.7
     colony_count = 0
     b_value = 156.7
     status = "🔴 치명적 (항산화제 미투여로 대량 사멸)"
@@ -81,7 +87,7 @@ else: # 산화처리군
 survival_rate_pct = (colony_count / 250.0) * 100.0
 dna_relative_pct = (b_value / 159.0) * 100.0
 
-# 5. 결과 출력
+# 6. 결과 출력
 st.subheader("📊 실제 데이터 기반 분석 결과")
 col1, col2, col3 = st.columns(3)
 col1.metric("예상 콜로니 개수", f"{colony_count} 개")
@@ -90,10 +96,9 @@ col3.metric("상대 DNA B값 비율", f"{dna_relative_pct:.1f} %")
 
 st.info(f"**판정 결과:** {status}")
 
-# 6. 실측치 기반 그래프 시각화
+# 7. 실측치 기반 그래프 시각화
 st.subheader("📈 그룹별 콜로니 수 비교 (실측치 연동)")
 
-# 현재 조건의 콜로니 개수를 그래프에 실시간 매핑
 prev_cnt = colony_count if "예방군" in condition else 210
 treat_cnt = colony_count if "치료군" in condition else 75
 
@@ -109,7 +114,6 @@ ax.bar(df['Group'], df['Colony Count'], color=colors)
 ax.set_ylabel("Yeast Colony Count")
 ax.set_ylim(0, 280)
 
-# 막대 상단에 실제 개수 숫자 표시
 for i, v in enumerate(df['Colony Count']):
     ax.text(i, v + 5, str(v), ha='center', fontweight='bold')
 
